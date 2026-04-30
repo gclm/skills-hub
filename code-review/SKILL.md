@@ -1,6 +1,7 @@
 ---
-name: code-review-expert
+name: code-review
 description: "Expert code review of current git changes with a senior engineer lens. Detects SOLID violations, security risks, and proposes actionable improvements."
+when_to_use: "Reviewing git diff before merge/commit — SOLID 违规、安全漏洞、并发问题、性能瓶颈、代码质量。TRIGGER: review, 代码审查, CR, review PR, 代码评审"
 ---
 
 # Code Review Expert

@@ -2,12 +2,6 @@
 
 A comprehensive code review skill for AI agents. Performs structured reviews with a senior engineer lens, covering architecture, security, performance, and code quality.
 
-## Installation
-
-```bash
-npx skills add sanyuan0704/sanyuan-skills --path skills/code-review-expert
-```
-
 ## Features
 
 - **SOLID Principles** - Detect SRP, OCP, LSP, ISP, DIP violations
@@ -22,7 +16,7 @@ npx skills add sanyuan0704/sanyuan-skills --path skills/code-review-expert
 After installation, simply run:
 
 ```
-/code-review-expert
+/code-review
 ```
 
 The skill will automatically review your current git changes.
@@ -49,7 +43,7 @@ The skill will automatically review your current git changes.
 ## Structure
 
 ```
-code-review-expert/
+code-review/
 ├── SKILL.md                 # Main skill definition
 ├── agents/
 │   └── agent.yaml           # Agent interface config

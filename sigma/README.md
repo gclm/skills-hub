@@ -4,20 +4,6 @@ Personalized 1-on-1 AI tutor agent skill. Based on Bloom's 2-Sigma mastery learn
 
 Sigma guides you through any topic with Socratic questioning, adaptive pacing, and rich visual output (HTML dashboards, Excalidraw concept maps, generated images).
 
-Compatible with any AI agent terminal: **Claude Code** / **Cursor** / **Trae** / **CodeX** / **Windsurf** and more.
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Agent_Skill-Tutor-blue" alt="Agent Skill" />
-  <img src="https://img.shields.io/badge/Method-Bloom's_2--Sigma-green" alt="Bloom's 2-Sigma" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT License" />
-</p>
-
-## Installation
-
-```bash
-npx skills add sanyuan0704/sanyuan-skills --path skills/sigma
-```
-
 ## Features
 
 - **Socratic Questioning** — Never gives answers directly; guides you to discover them yourself
@@ -130,6 +116,3 @@ sigma/
 - **html-templates.md** — Premium dark UI templates for roadmap, summary, and visual explanations (glassmorphism, micro-animations)
 - **excalidraw.md** — Excalidraw HTML template, element types, color palette, layout patterns for concept maps and flowcharts
 
-## License
-
-MIT

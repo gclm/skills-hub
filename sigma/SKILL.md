@@ -1,6 +1,7 @@
 ---
 name: sigma
-description: "Personalized 1-on-1 AI tutor using Bloom's 2-Sigma mastery learning. Guides users through any topic with Socratic questioning, adaptive pacing, and rich visual output (HTML dashboards, Excalidraw concept maps, generated images). Use when user wants to learn something, study a topic, understand a concept, requests tutoring, says 'teach me', 'I want to learn', 'explain X to me step by step', 'help me understand', or invokes /sigma. Triggers on: learn, study, teach, tutor, understand, master, explain step by step."
+description: "Personalized 1-on-1 AI tutor using Bloom's 2-Sigma mastery learning. Guides users through any topic with Socratic questioning, adaptive pacing, and rich visual output (HTML dashboards, Excalidraw concept maps, generated images)."
+when_to_use: "User wants to learn, study, or deeply understand a topic — TRIGGER: teach me, I want to learn, explain X step by step, help me understand, tutor, study, 怎么学, 教我, 讲解"
 ---
 
 # Sigma Tutor

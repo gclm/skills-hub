@@ -1,6 +1,7 @@
 ---
 name: skill-creator
-description: Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy.
+description: "Create new skills, modify and improve existing skills, and measure skill performance with quantitative evals and variance analysis."
+when_to_use: "Creating a new skill, editing or optimizing an existing skill, running evals, benchmarking skill performance, or optimizing skill triggering accuracy. TRIGGER: create skill, new skill, improve skill, skill eval, test skill"
 ---
 
 # Skill Creator
