@@ -39,12 +39,10 @@ jobs:
       - name: Read result
         id: result
         run: |
-          python -c "
-          import json
-          d = json.load(open('/tmp/add_result.json'))
-          print(f'success={d[\"success\"]}')
-          print(f'skill_id={d.get(\"skill_id\", \"\")}')
-          "
+          {
+            echo "success=$(python -c "import json; print(json.load(open('/tmp/add_result.json'))['success'])")"
+            echo "skill_id=$(python -c "import json; print(json.load(open('/tmp/add_result.json')).get('skill_id',''))")"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create Pull Request
         if: steps.result.outputs.success == 'True'
