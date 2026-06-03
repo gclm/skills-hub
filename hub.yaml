@@ -142,3 +142,19 @@ skills:
   metadata:
     license: MIT
     author: 郭浩
+- id: knowgtzh
+  type: external
+  path: knowgtzh
+  description: 从 WebFetch/WebSearch 结果生成简洁、易读的 GitHub Trending 中文简报，与已有的 
+    markdown 历史报告对比，并撰写每日或每周趋势总结。当用户要求分析 GitHub 热门趋势、对比今日与历史趋势、用通俗语言解释热门仓库，或为 
+    Codex、Claude Code 等编码助手创建可重复的 GitHub 趋势报告时使用。
+  source:
+    repo: https://github.com/wahahaazhe/knowgt.git
+    ref: master
+    subpath: skills/productivity/github-trending-briefing/knowgtzh/
+  last_synced:
+    commit_sha: 03cdaa448ec2659c587f3f2eca97e64bc0ee634f
+    synced_at: '2026-06-03T08:36:26Z'
+  metadata:
+    license: MIT
+    author: wahahaazhe
