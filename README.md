@@ -2,6 +2,26 @@
 
 A centralized collection of [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills — 自写 + 外部收集，统一管理、自动同步。
 
+## 安装
+
+使用 [skills.sh](https://skills.sh) CLI 一键安装到 Claude Code：
+
+```bash
+# 安装全部 skills（全局，所有项目可用）
+npx skills add gclm/skills-hub --all -g -a claude-code -y
+
+# 安装指定 skill
+npx skills add gclm/skills-hub --skill tdd -g -a claude-code -y
+
+# 查看仓库中有哪些 skill
+npx skills add gclm/skills-hub --list
+
+# 更新已安装的 skill
+npx skills update -g -y
+```
+
+> `npx skills` 支持 Claude Code、Cursor、Codex、Windsurf 等 67+ agent，详见 [skills.sh](https://github.com/vercel-labs/skills)。
+
 ## Skills
 
 | Skill | Type | Author | Description |
@@ -20,7 +40,7 @@ A centralized collection of [Claude Code](https://docs.anthropic.com/en/docs/cla
 ### 通过 Issue（推荐）
 
 1. 点击 **[Issues → New Issue → Add New Skill](../../issues/new?template=add-skill.yml)**
-2. 只需填写一个字段：
+2. 只需填写：
 
 | 字段 | 必填 | 说明 |
 |------|------|------|
@@ -31,10 +51,9 @@ A centralized collection of [Claude Code](https://docs.anthropic.com/en/docs/cla
 3. 提交后自动完成：
    - 克隆上游 → 读取 `SKILL.md` 获取名称和描述
    - 自动检测 License 和 Author
-   - 创建 PR → CI 校验 → 自动合并
-   - Issue 自动关闭 ✅
+   - 创建 PR → CI 校验 → 自动合并 → Issue 自动关闭 ✅
 
-**重试**：如果处理失败，修正问题后重新打开 Issue 即可重试。
+**重试**：处理失败后重新打开 Issue 即可重试。
 
 ### 手动添加
 

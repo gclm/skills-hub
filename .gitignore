@@ -1,5 +1,9 @@
 # Sync artifacts
 _sync_output.json
+_add_result.json
+
+# Node
+node_modules/
 
 # Python
 __pycache__/
