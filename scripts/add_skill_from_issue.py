@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Add a new skill from a GitHub Issue submission.
 
-Parses the structured Issue body, validates the input, creates the
-skill directory (for local skills) or registers the source (for external
-skills), and updates hub.yaml.
+Minimal Issue template: only repo URL is required.
+The script auto-detects: skill name, description, license, author
+by cloning the upstream repo and reading SKILL.md + metadata.
 """
 
 import argparse
 import json
+import os
 import re
+import shutil
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,172 +27,208 @@ yaml.preserve_quotes = True
 yaml.default_flow_style = False
 
 
-# ── Issue body parser ──────────────────────────────────────────────
+# ── Helpers ────────────────────────────────────────────────────────
+
+
+def git(*args: str, cwd: Path | None = None, check: bool = True) -> str:
+    result = subprocess.run(
+        ["git", *args], cwd=cwd, capture_output=True, text=True, check=False
+    )
+    if check and result.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)} failed: {result.stderr.strip()}")
+    return result.stdout.strip()
 
 
 def parse_issue_body(body: str) -> dict[str, str]:
-    """Parse GitHub Issue form body into {field_id: value} mapping.
-
-    GitHub issue forms render as:
-        ### Label
-
-        value
-    """
+    """Parse GitHub Issue form body into {field_id: value}."""
     fields: dict[str, str] = {}
-
-    # Split on ### headers
-    parts = re.split(r"^### (.+)$", body, flags=re.MULTILINE)
-
-    # Map from label to field id
     label_to_id = {
-        "Skill 类型": "skill-type",
-        "Skill ID": "skill-id",
-        "描述": "description",
-        "上游仓库 URL（仅 External）": "repo-url",
-        "分支/标签（仅 External）": "ref",
-        "子目录路径（可选，仅 External）": "subpath",
-        "许可证（可选）": "license",
-        "作者（可选）": "author",
-        "SKILL.md 内容（仅 Local）": "skill-content",
+        "仓库地址": "repo-url",
+        "子目录路径（可选）": "subpath",
+        "分支 / 标签（可选）": "ref",
     }
-
-    # parts[0] is before first header, then alternating (label, value)
+    parts = re.split(r"^### (.+)$", body, flags=re.MULTILINE)
     for i in range(1, len(parts) - 1, 2):
         label = parts[i].strip()
         value = parts[i + 1].strip() if i + 1 < len(parts) else ""
         field_id = label_to_id.get(label)
         if field_id:
-            fields[field_id] = value
-
-    # Handle "No response" → treat as empty
-    for k in fields:
-        if fields[k] == "_No response_":
-            fields[k] = ""
-
+            fields[field_id] = "" if value == "_No response_" else value
     return fields
 
 
-# ── Validation ─────────────────────────────────────────────────────
+def parse_frontmatter(text: str) -> dict | None:
+    """Extract YAML frontmatter from markdown."""
+    if not text.startswith("---"):
+        return None
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        return None
+    try:
+        import yaml as _yaml
+        return _yaml.safe_load(parts[1])
+    except Exception:
+        return None
 
 
-def load_hub() -> dict:
-    """Load hub.yaml."""
-    with open(HUB_FILE) as f:
-        return yaml.load(f)
+def detect_license(repo_dir: Path) -> str:
+    """Try to detect license from LICENSE / LICENSE.md."""
+    for name in ("LICENSE", "LICENSE.md", "LICENSE.txt"):
+        f = repo_dir / name
+        if f.exists():
+            content = f.read_text(errors="ignore")[:500].lower()
+            if "mit" in content:
+                return "MIT"
+            if "apache" in content:
+                return "Apache-2.0"
+            if "gpl" in content:
+                return "GPL-3.0"
+            return "Custom"
+    return ""
 
 
-def save_hub(hub: dict) -> None:
-    """Save hub.yaml preserving formatting."""
-    with open(HUB_FILE, "w") as f:
-        yaml.dump(hub, f)
+def detect_author(repo_dir: Path) -> str:
+    """Try to detect author from git log or package.json."""
+    # Try package.json
+    pkg = repo_dir / "package.json"
+    if pkg.exists():
+        try:
+            import json as _json
+            data = _json.loads(pkg.read_text())
+            if data.get("author"):
+                return str(data["author"])
+        except Exception:
+            pass
+    # Try git log
+    try:
+        name = git("log", "-1", "--format=%aN", cwd=repo_dir)
+        if name:
+            return name
+    except Exception:
+        pass
+    return ""
 
 
-def validate_fields(fields: dict, hub: dict) -> list[str]:
-    """Validate parsed fields. Returns error list."""
-    errors: list[str] = []
-
-    # skill-id
-    sid = fields.get("skill-id", "").strip()
-    if not sid:
-        errors.append("Skill ID is required")
-    elif not VALID_ID_RE.match(sid):
-        errors.append(f"Skill ID '{sid}' must be kebab-case (lowercase, digits, hyphens)")
-
-    # Check uniqueness
-    existing_ids = {s["id"] for s in hub.get("skills", []) if isinstance(s, dict)}
-    if sid in existing_ids:
-        errors.append(f"Skill ID '{sid}' already exists in hub.yaml")
-
-    # skill-type
-    stype_raw = fields.get("skill-type", "").strip()
-    if "local" in stype_raw.lower():
-        stype = "local"
-    elif "external" in stype_raw.lower():
-        stype = "external"
-    else:
-        errors.append("Skill type must be Local or External")
-        stype = ""
-
-    # description
-    desc = fields.get("description", "").strip()
-    if not desc:
-        errors.append("Description is required")
-
-    # type-specific validation
-    if stype == "external":
-        repo_url = fields.get("repo-url", "").strip()
-        ref = fields.get("ref", "").strip()
-        if not repo_url:
-            errors.append("Upstream repo URL is required for External skills")
-        if not ref:
-            errors.append("Branch/tag is required for External skills")
-
-    if stype == "local":
-        content = fields.get("skill-content", "").strip()
-        if not content:
-            errors.append("SKILL.md content is required for Local skills")
-
-    return errors
+# ── Core logic ─────────────────────────────────────────────────────
 
 
-# ── Skill creation ─────────────────────────────────────────────────
+def add_skill(fields: dict, hub: dict) -> dict:
+    """Clone upstream, detect metadata, create skill, update hub.yaml.
+    Returns result dict with success/error info."""
+    repo_url = fields.get("repo-url", "").strip()
+    if not repo_url:
+        return {"success": False, "errors": ["仓库地址是必填项"]}
+
+    # Normalize URL (accept both with/without .git)
+    if not repo_url.startswith("http") and not repo_url.startswith("git@"):
+        repo_url = f"https://github.com/{repo_url}"
+    if repo_url.endswith("/"):
+        repo_url = repo_url.rstrip("/")
+
+    ref = fields.get("ref", "").strip() or "main"
+    subpath = fields.get("subpath", "").strip().rstrip("/")
+
+    # Clone upstream to temp dir
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="add-skill-") as tmp:
+        tmp_dir = Path(tmp) / "repo"
+        try:
+            git("clone", "--depth", "1", "--branch", ref, repo_url, str(tmp_dir))
+        except RuntimeError as e:
+            return {"success": False, "errors": [f"克隆仓库失败: {e}"]}
+
+        # Determine skill source directory
+        src_dir = tmp_dir / subpath if subpath else tmp_dir
+        if not src_dir.is_dir():
+            return {
+                "success": False,
+                "errors": [f"子目录 '{subpath}' 在仓库中不存在"],
+            }
+
+        # Find SKILL.md
+        skill_md = src_dir / "SKILL.md"
+        if not skill_md.exists():
+            return {
+                "success": False,
+                "errors": [
+                    f"未找到 SKILL.md — 确认仓库"
+                    f"{'的 ' + subpath + ' 目录' if subpath else ''}"
+                    " 中包含 SKILL.md"
+                ],
+            }
+
+        # Parse frontmatter
+        content = skill_md.read_text()
+        fm = parse_frontmatter(content)
+        if not fm or not fm.get("name"):
+            return {"success": False, "errors": ["SKILL.md 缺少有效的 YAML frontmatter (name)"]}
+
+        skill_name = str(fm["name"]).strip()
+        skill_desc = str(fm.get("description", "")).strip()
+        skill_id = skill_name.lower().replace(" ", "-")
+        # Sanitize to kebab-case
+        skill_id = re.sub(r"[^a-z0-9-]", "-", skill_id).strip("-")
+
+        if not VALID_ID_RE.match(skill_id):
+            return {"success": False, "errors": [f"无法从 name '{skill_name}' 生成合法的 skill ID"]}
+
+        # Check uniqueness
+        existing_ids = {s["id"] for s in hub.get("skills", []) if isinstance(s, dict)}
+        if skill_id in existing_ids:
+            return {"success": False, "errors": [f"Skill ID '{skill_id}' 已存在于 hub.yaml"]}
+
+        # Auto-detect metadata
+        license_name = detect_license(tmp_dir)
+        author = detect_author(tmp_dir)
+
+        # Copy skill files
+        dst_dir = REPO_ROOT / skill_id
+        print(f"  Copying {src_dir} → {dst_dir}")
+        shutil.copytree(src_dir, dst_dir, dirs_exist_ok=True)
+
+        # Register in hub.yaml
+        head_sha = get_head_sha(tmp_dir)
+        entry = {
+            "id": skill_id,
+            "type": "external",
+            "path": skill_id,
+            "description": skill_desc or f"Synced from {repo_url}",
+            "source": {"repo": repo_url + ".git" if not repo_url.endswith(".git") else repo_url, "ref": ref},
+            "last_synced": {
+                "commit_sha": head_sha,
+                "synced_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            },
+        }
+        if subpath:
+            entry["source"]["subpath"] = subpath + "/"
+
+        metadata = {}
+        if license_name:
+            metadata["license"] = license_name
+        if author:
+            metadata["author"] = author
+        if metadata:
+            entry["metadata"] = metadata
+
+        hub["skills"].append(entry)
+
+        # Save hub.yaml
+        with open(HUB_FILE, "w") as f:
+            yaml.dump(hub, f)
+
+        return {
+            "success": True,
+            "skill_id": skill_id,
+            "skill_name": skill_name,
+            "description": skill_desc,
+            "license": license_name,
+            "author": author,
+            "files_count": sum(1 for _ in dst_dir.rglob("*") if _.is_file()),
+        }
 
 
-def add_local_skill(sid: str, desc: str, content: str, hub: dict,
-                    metadata: dict) -> None:
-    """Create a local skill directory with SKILL.md and register in hub."""
-    skill_dir = REPO_ROOT / sid
-    skill_dir.mkdir(parents=True, exist_ok=True)
-
-    # Write SKILL.md
-    (skill_dir / "SKILL.md").write_text(content + "\n")
-
-    # Register in hub.yaml
-    entry = {
-        "id": sid,
-        "type": "local",
-        "path": sid,
-        "description": desc,
-    }
-    if metadata.get("license"):
-        entry["metadata"] = {"license": metadata["license"]}
-        if metadata.get("author"):
-            entry["metadata"]["author"] = metadata["author"]
-
-    hub["skills"].append(entry)
-    save_hub(hub)
-
-
-def add_external_skill(sid: str, desc: str, repo_url: str, ref: str,
-                       subpath: str, hub: dict, metadata: dict) -> None:
-    """Register an external skill in hub.yaml."""
-    entry = {
-        "id": sid,
-        "type": "external",
-        "path": sid,
-        "description": desc,
-        "source": {
-            "repo": repo_url,
-            "ref": ref,
-        },
-        "last_synced": {
-            "commit_sha": "",
-            "synced_at": "",
-        },
-    }
-
-    if subpath:
-        entry["source"]["subpath"] = subpath
-
-    if metadata.get("license") or metadata.get("author"):
-        entry["metadata"] = {}
-        if metadata.get("license"):
-            entry["metadata"]["license"] = metadata["license"]
-        if metadata.get("author"):
-            entry["metadata"]["author"] = metadata["author"]
-
-    hub["skills"].append(entry)
-    save_hub(hub)
+def get_head_sha(repo_dir: Path) -> str:
+    return git("rev-parse", "HEAD", cwd=repo_dir)
 
 
 # ── Main ───────────────────────────────────────────────────────────
@@ -197,72 +236,38 @@ def add_external_skill(sid: str, desc: str, repo_url: str, ref: str,
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Add skill from Issue")
-    parser.add_argument("--issue-body", type=Path, required=True,
-                        help="File containing issue body")
-    parser.add_argument("--issue-number", type=int, required=True,
-                        help="Issue number")
-    parser.add_argument("--output", type=Path,
-                        default=REPO_ROOT / "_add_result.json",
-                        help="Path for result JSON")
+    parser.add_argument("--issue-body", type=Path, required=True)
+    parser.add_argument("--issue-number", type=int, required=True)
+    parser.add_argument("--output", type=Path, default=REPO_ROOT / "_add_result.json")
     args = parser.parse_args()
 
-    # Parse issue body
     body = args.issue_body.read_text()
     fields = parse_issue_body(body)
 
     print("Parsed fields:")
     for k, v in fields.items():
-        display_v = v[:80] + "..." if len(v) > 80 else v
-        print(f"  {k}: {display_v}")
+        print(f"  {k}: {v}")
 
-    # Load hub
-    hub = load_hub()
+    with open(HUB_FILE) as f:
+        hub = yaml.load(f)
 
-    # Validate
-    errors = validate_fields(fields, hub)
-    if errors:
-        print(f"\n❌ Validation failed ({len(errors)} error(s)):")
-        for e in errors:
-            print(f"  • {e}")
-        # Write error result
-        args.output.write_text(json.dumps({
-            "success": False,
-            "errors": errors,
-        }, indent=2, ensure_ascii=False))
-        return 1
+    result = add_skill(fields, hub)
 
-    # Extract fields
-    sid = fields["skill-id"].strip()
-    desc = fields["description"].strip()
-    stype_raw = fields["skill-type"].strip()
-    stype = "local" if "local" in stype_raw.lower() else "external"
-
-    metadata = {
-        "license": fields.get("license", "").strip(),
-        "author": fields.get("author", "").strip(),
-    }
-
-    if stype == "local":
-        content = fields["skill-content"].strip()
-        add_local_skill(sid, desc, content, hub, metadata)
-        print(f"\n✅ Local skill '{sid}' created at {sid}/SKILL.md")
+    if not result.get("success"):
+        print(f"\n❌ Failed: {result.get('errors', [])}")
     else:
-        repo_url = fields["repo-url"].strip()
-        ref = fields.get("ref", "main").strip() or "main"
-        subpath = fields.get("subpath", "").strip()
-        add_external_skill(sid, desc, repo_url, ref, subpath, hub, metadata)
-        print(f"\n✅ External skill '{sid}' registered (will sync on next workflow run)")
+        print(f"\n✅ Skill '{result['skill_id']}' added!")
+        print(f"  Name: {result.get('skill_name')}")
+        print(f"  Description: {result.get('description', '')[:80]}")
+        print(f"  License: {result.get('license', 'N/A')}")
+        print(f"  Author: {result.get('author', 'N/A')}")
+        print(f"  Files: {result.get('files_count', 0)}")
 
-    # Write success result
-    result = {
-        "success": True,
-        "skill_id": sid,
-        "type": stype,
-        "issue_number": args.issue_number,
-        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
+    result["issue_number"] = args.issue_number
+    result["timestamp"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False))
-    return 0
+
+    return 0 if result.get("success") else 1
 
 
 if __name__ == "__main__":

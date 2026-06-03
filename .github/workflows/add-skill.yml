@@ -2,7 +2,7 @@ name: Add Skill from Issue
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [opened]
 
 permissions:
   contents: write
@@ -11,8 +11,8 @@ permissions:
 
 jobs:
   add-skill:
-    # Only process issues with the add-skill label
-    if: contains(github.event.issue.labels.*.name, 'add-skill')
+    # Only process issues that contain "仓库地址" field (from the add-skill template)
+    if: contains(github.event.issue.body, '仓库地址')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,8 +39,12 @@ jobs:
       - name: Read result
         id: result
         run: |
-          SUCCESS=$(python -c "import json; print(json.load(open('/tmp/add_result.json'))['success'])")
-          echo "success=$SUCCESS" >> "$GITHUB_OUTPUT"
+          python -c "
+          import json
+          d = json.load(open('/tmp/add_result.json'))
+          print(f'success={d[\"success\"]}')
+          print(f'skill_id={d.get(\"skill_id\", \"\")}')
+          "
 
       - name: Create Pull Request
         if: steps.result.outputs.success == 'True'
@@ -50,8 +54,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: add-skill/issue-${{ github.event.issue.number }}
           delete-branch: true
-          title: "feat: add skill from #${{ github.event.issue.number }}"
-          commit-message: "feat: add skill from issue #${{ github.event.issue.number }}"
+          title: "feat: add ${{ steps.result.outputs.skill_id }} from #${{ github.event.issue.number }}"
+          commit-message: "feat: add ${{ steps.result.outputs.skill_id }} from issue #${{ github.event.issue.number }}"
           labels: add-skill,automated
           body: |
             ## New Skill from Issue #${{ github.event.issue.number }}
@@ -76,17 +80,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Handle parse error
-        if: failure() && steps.result.outputs.success != 'True'
+        if: failure()
         run: |
+          # Read error details
+          ERRORS=$(python -c "import json; d=json.load(open('/tmp/add_result.json')); print('\\n'.join(d.get('errors',['Unknown error'])))" 2>/dev/null || echo "Unknown error")
           gh issue comment ${{ github.event.issue.number }} \
-            --body "❌ 处理失败，请检查填写内容是否完整正确。
+            --body "❌ 处理失败：
+
+          \`\`\`
+          $ERRORS
+          \`\`\`
 
           常见问题：
-          - Skill ID 必须是 kebab-case 格式（小写字母、数字、连字符）
-          - Local 类型需要填写 SKILL.md 内容
-          - External 类型需要填写上游仓库 URL 和分支/标签"
-          gh issue edit ${{ github.event.issue.number }} \
-            --add-label "add-failed" \
-            --remove-label "add-skill"
+          - 仓库地址必须是可访问的 Git 仓库
+          - 仓库中必须包含 \`SKILL.md\` 文件
+          - 如指定子目录，确保路径正确"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

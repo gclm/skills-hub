@@ -1,83 +1,27 @@
 name: Add New Skill
-description: 提交一个新的 skill 到 Skills Hub
+description: 从外部仓库添加一个 skill（脚本会自动获取名称、描述、许可证等信息）
 labels:
   - add-skill
 body:
-  - type: dropdown
-    id: skill-type
-    attributes:
-      label: Skill 类型
-      description: Local = 自写 skill，External = 从外部仓库同步
-      options:
-        - Local（自写）
-        - External（外部同步）
-    validations:
-      required: true
-
-  - type: input
-    id: skill-id
-    attributes:
-      label: Skill ID
-      description: 唯一标识符，kebab-case 格式（如 my-new-skill）
-      placeholder: my-new-skill
-    validations:
-      required: true
-
-  - type: textarea
-    id: description
-    attributes:
-      label: 描述
-      description: 这个 skill 做什么？什么时候触发？
-      placeholder: "What this skill does and when to trigger it..."
-    validations:
-      required: true
-
   - type: input
     id: repo-url
     attributes:
-      label: 上游仓库 URL（仅 External）
-      description: 如 https://github.com/org/repo.git
-      placeholder: https://github.com/...
-
-  - type: input
-    id: ref
-    attributes:
-      label: 分支/标签（仅 External）
-      description: 要跟踪的分支或标签
-      placeholder: main
+      label: 仓库地址
+      description: GitHub 仓库 URL（如 https://github.com/org/repo）
+      placeholder: https://github.com/org/repo
+    validations:
+      required: true
 
   - type: input
     id: subpath
     attributes:
-      label: 子目录路径（可选，仅 External）
-      description: 如果只同步上游仓库的某个子目录
+      label: 子目录路径（可选）
+      description: 如果 skill 在仓库的某个子目录中，填写相对路径
       placeholder: skills/my-skill/
 
   - type: input
-    id: license
+    id: ref
     attributes:
-      label: 许可证（可选）
-      placeholder: MIT
-
-  - type: input
-    id: author
-    attributes:
-      label: 作者（可选）
-      placeholder: Author Name
-
-  - type: textarea
-    id: skill-content
-    attributes:
-      label: SKILL.md 内容（仅 Local）
-      description: 如果是自写 skill，粘贴 SKILL.md 的完整内容（含 YAML frontmatter）
-      render: markdown
-      placeholder: |
-        ---
-        name: my-skill
-        description: "What this skill does"
-        when_to_use: "When to trigger"
-        ---
-
-        # My Skill
-
-        Skill instructions here...
+      label: 分支 / 标签（可选）
+      description: 默认使用 main 分支
+      placeholder: main
