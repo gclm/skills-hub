@@ -1,25 +1,30 @@
 schema_version: 1
 
 skills:
-  - id: code-review
-    type: local
-    path: code-review
-    description: "Expert code review of current git changes with a senior engineer lens. Detects SOLID violations, security risks, and proposes actionable improvements."
+- id: code-review
+  type: local
+  path: code-review
+  description: "Expert code review of current git changes with a senior engineer lens.
+    Detects SOLID violations, security risks, and proposes actionable improvements."
 
-  - id: sigma
-    type: local
-    path: sigma
-    description: "Personalized 1-on-1 AI tutor using Bloom's 2-Sigma mastery learning. Guides users through any topic with Socratic questioning, adaptive pacing, and rich visual output."
+- id: sigma
+  type: local
+  path: sigma
+  description: "Personalized 1-on-1 AI tutor using Bloom's 2-Sigma mastery learning.
+    Guides users through any topic with Socratic questioning, adaptive pacing, and
+    rich visual output."
 
-  - id: skill-creator
-    type: local
-    path: skill-creator
-    description: "Create new skills, modify and improve existing skills, and measure skill performance with quantitative evals and variance analysis."
+- id: skill-creator
+  type: local
+  path: skill-creator
+  description: "Create new skills, modify and improve existing skills, and measure
+    skill performance with quantitative evals and variance analysis."
 
-  - id: tdd
-    type: local
-    path: tdd
-    description: "TDD workflow — write failing test first (RED), implement (GREEN), refactor. Includes Go/Java/Python examples and testing anti-patterns."
+- id: tdd
+  type: local
+  path: tdd
+  description: "TDD workflow — write failing test first (RED), implement (GREEN),
+    refactor. Includes Go/Java/Python examples and testing anti-patterns."
 
   # ── External skill examples ──────────────────────────────────────
   #
@@ -53,3 +58,25 @@ skills:
   #     metadata:
   #       license: Apache-2.0
   #       author: "Another Author"
+- id: neat-freak
+  type: external
+  path: neat-freak
+  description: 'End-of-session knowledge cleanup with OCD-level rigor — reconciles
+    project docs (CLAUDE.md, README.md, docs/) and agent memory against the code so
+    nothing rots. 会话结束后对项目文档和记忆进行洁癖级审查与同步。MUST trigger when the user says: "sync up",
+    "tidy up docs", "update memory", "clean up docs", "/sync", "/neat", "同步一下", "整理文档",
+    "整理一下", "更新记忆", "梳理一下", "收尾", "这个阶段做完了", "新人能直接上手", or any phrase suggesting a
+    dev milestone where knowledge needs reconciliation. Also trigger when the user
+    reports stale docs, conflicting memories, or wants a clean handoff to teammates
+    or other agents. Bare "整理" / "tidy" with prior dev context counts — do not under-trigger.
+    Cross-platform: works on Claude Code, OpenAI Codex, OpenCode, and OpenClaw.'
+  source:
+    repo: https://github.com/KKKKhazix/khazix-skills.git
+    ref: main
+    subpath: neat-freak/
+  last_synced:
+    commit_sha: f78992d0d9ea73f7844e2e27acdd5f5c5e3a13aa
+    synced_at: '2026-06-03T08:12:03Z'
+  metadata:
+    license: MIT
+    author: Khazix
