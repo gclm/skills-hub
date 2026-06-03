@@ -1,0 +1,55 @@
+schema_version: 1
+
+skills:
+  - id: code-review
+    type: local
+    path: code-review
+    description: "Expert code review of current git changes with a senior engineer lens. Detects SOLID violations, security risks, and proposes actionable improvements."
+
+  - id: sigma
+    type: local
+    path: sigma
+    description: "Personalized 1-on-1 AI tutor using Bloom's 2-Sigma mastery learning. Guides users through any topic with Socratic questioning, adaptive pacing, and rich visual output."
+
+  - id: skill-creator
+    type: local
+    path: skill-creator
+    description: "Create new skills, modify and improve existing skills, and measure skill performance with quantitative evals and variance analysis."
+
+  - id: tdd
+    type: local
+    path: tdd
+    description: "TDD workflow — write failing test first (RED), implement (GREEN), refactor. Includes Go/Java/Python examples and testing anti-patterns."
+
+  # ── External skill examples ──────────────────────────────────────
+  #
+  # Whole upstream repo = one skill:
+  #
+  #   - id: some-skill
+  #     type: external
+  #     path: some-skill
+  #     source:
+  #       repo: https://github.com/org/repo.git
+  #       ref: main
+  #     last_synced:
+  #       commit_sha: ""
+  #       synced_at: ""
+  #     metadata:
+  #       license: MIT
+  #       author: "Author Name"
+  #
+  # Subdirectory of upstream repo = one skill:
+  #
+  #   - id: subdir-skill
+  #     type: external
+  #     path: subdir-skill
+  #     source:
+  #       repo: https://github.com/org/big-repo.git
+  #       ref: main
+  #       subpath: skills/my-skill/
+  #     last_synced:
+  #       commit_sha: ""
+  #       synced_at: ""
+  #     metadata:
+  #       license: Apache-2.0
+  #       author: "Another Author"

@@ -1,0 +1,87 @@
+name: Sync External Skills
+
+on:
+  schedule:
+    # Every day at 02:00 UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Detect changes only, do not create PR"
+        required: false
+        default: false
+        type: boolean
+      skill_id:
+        description: "Sync only this skill (leave empty for all)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Run sync script
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [ -n "${{ github.event.inputs.skill_id }}" ]; then
+            ARGS="$ARGS --skill ${{ github.event.inputs.skill_id }}"
+          fi
+          python scripts/sync_skills.py $ARGS --output _sync_output.json
+
+      - name: Check for changes
+        id: check
+        run: |
+          TOTAL=$(python -c "import json; print(json.load(open('_sync_output.json'))['total_changes'])")
+          echo "total_changes=$TOTAL" >> "$GITHUB_OUTPUT"
+
+      - name: Create Pull Request
+        if: steps.check.outputs.total_changes != '0' && github.event.inputs.dry_run != 'true'
+        uses: peter-evans/create-pull-request@v7
+        id: create-pr
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: sync/skills-${{ github.run_id }}
+          delete-branch: true
+          title: "chore(sync): update external skills"
+          commit-message: "chore(sync): update external skills"
+          labels: sync,automated
+          body: |
+            ## 🔄 Skill Sync Report
+
+            **Skills changed**: ${{ steps.check.outputs.total_changes }}
+
+            <details><summary>Change Details</summary>
+
+            ```json
+            ${{ steps.check.outputs.total_changes }}
+            ```
+
+            </details>
+
+            ---
+            Auto-merge is enabled. Will merge after CI validation passes.
+
+      - name: Enable auto-merge
+        if: steps.check.outputs.total_changes != '0' && github.event.inputs.dry_run != 'true'
+        run: gh pr merge --auto --squash "${{ steps.create-pr.outputs.pull-request-url }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

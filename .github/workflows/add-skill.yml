@@ -1,0 +1,92 @@
+name: Add Skill from Issue
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  add-skill:
+    # Only process issues with the add-skill label
+    if: contains(github.event.issue.labels.*.name, 'add-skill')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Save issue body
+        run: echo "${{ github.event.issue.body }}" > /tmp/issue_body.txt
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Parse and create skill
+        id: parse
+        run: |
+          python scripts/add_skill_from_issue.py \
+            --issue-body /tmp/issue_body.txt \
+            --issue-number ${{ github.event.issue.number }} \
+            --output /tmp/add_result.json
+
+      - name: Read result
+        id: result
+        run: |
+          SUCCESS=$(python -c "import json; print(json.load(open('/tmp/add_result.json'))['success'])")
+          echo "success=$SUCCESS" >> "$GITHUB_OUTPUT"
+
+      - name: Create Pull Request
+        if: steps.result.outputs.success == 'True'
+        uses: peter-evans/create-pull-request@v7
+        id: create-pr
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: add-skill/issue-${{ github.event.issue.number }}
+          delete-branch: true
+          title: "feat: add skill from #${{ github.event.issue.number }}"
+          commit-message: "feat: add skill from issue #${{ github.event.issue.number }}"
+          labels: add-skill,automated
+          body: |
+            ## New Skill from Issue #${{ github.event.issue.number }}
+
+            Closes #${{ github.event.issue.number }}
+
+            ---
+            Auto-merge is enabled. Will merge after CI validation passes.
+
+      - name: Comment success on issue
+        if: steps.result.outputs.success == 'True'
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "✅ Skill 已处理，PR 已创建。CI 校验通过后将自动合并。"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        if: steps.result.outputs.success == 'True'
+        run: gh pr merge --auto --squash "${{ steps.create-pr.outputs.pull-request-url }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Handle parse error
+        if: failure() && steps.result.outputs.success != 'True'
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "❌ 处理失败，请检查填写内容是否完整正确。
+
+          常见问题：
+          - Skill ID 必须是 kebab-case 格式（小写字母、数字、连字符）
+          - Local 类型需要填写 SKILL.md 内容
+          - External 类型需要填写上游仓库 URL 和分支/标签"
+          gh issue edit ${{ github.event.issue.number }} \
+            --add-label "add-failed" \
+            --remove-label "add-skill"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
