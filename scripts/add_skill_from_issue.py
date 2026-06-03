@@ -125,17 +125,29 @@ def add_skill(fields: dict, hub: dict) -> dict:
     if repo_url.endswith("/"):
         repo_url = repo_url.rstrip("/")
 
-    ref = fields.get("ref", "").strip() or "main"
+    ref = fields.get("ref", "").strip()
     subpath = fields.get("subpath", "").strip().rstrip("/")
 
     # Clone upstream to temp dir
     import tempfile
     with tempfile.TemporaryDirectory(prefix="add-skill-") as tmp:
         tmp_dir = Path(tmp) / "repo"
-        try:
-            git("clone", "--depth", "1", "--branch", ref, repo_url, str(tmp_dir))
-        except RuntimeError as e:
-            return {"success": False, "errors": [f"克隆仓库失败: {e}"]}
+        if ref:
+            # User specified a branch/tag — clone that ref
+            try:
+                git("clone", "--depth", "1", "--branch", ref, repo_url, str(tmp_dir))
+            except RuntimeError as e:
+                return {"success": False, "errors": [f"克隆仓库失败 (ref={ref}): {e}"]}
+        else:
+            # No ref specified — auto-detect default branch
+            try:
+                # Try git clone without --branch (uses default branch)
+                git("clone", "--depth", "1", repo_url, str(tmp_dir))
+            except RuntimeError as e:
+                return {"success": False, "errors": [f"克隆仓库失败: {e}"]}
+            # Read the actual default branch name
+            ref = git("rev-parse", "--abbrev-ref", "HEAD", cwd=tmp_dir)
+            print(f"  Auto-detected default branch: {ref}")
 
         # Determine skill source directory
         src_dir = tmp_dir / subpath if subpath else tmp_dir
@@ -172,10 +184,15 @@ def add_skill(fields: dict, hub: dict) -> dict:
         if not VALID_ID_RE.match(skill_id):
             return {"success": False, "errors": [f"无法从 name '{skill_name}' 生成合法的 skill ID"]}
 
-        # Check uniqueness
-        existing_ids = {s["id"] for s in hub.get("skills", []) if isinstance(s, dict)}
-        if skill_id in existing_ids:
-            return {"success": False, "errors": [f"Skill ID '{skill_id}' 已存在于 hub.yaml"]}
+        # Check uniqueness — on retry, update existing entry
+        existing_ids = {s["id"]: i for i, s in enumerate(hub.get("skills", [])) if isinstance(s, dict)}
+        is_retry = skill_id in existing_ids
+        if is_retry:
+            print(f"  ⚠️ Skill '{skill_id}' already in hub.yaml — updating (retry)")
+            # Remove old directory if exists
+            old_path = REPO_ROOT / skill_id
+            if old_path.is_dir():
+                shutil.rmtree(old_path)
 
         # Auto-detect metadata
         license_name = detect_license(tmp_dir)
@@ -210,7 +227,10 @@ def add_skill(fields: dict, hub: dict) -> dict:
         if metadata:
             entry["metadata"] = metadata
 
-        hub["skills"].append(entry)
+        if is_retry:
+            hub["skills"][existing_ids[skill_id]] = entry
+        else:
+            hub["skills"].append(entry)
 
         # Save hub.yaml
         with open(HUB_FILE, "w") as f:
