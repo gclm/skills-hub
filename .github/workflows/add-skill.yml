@@ -63,11 +63,14 @@ jobs:
             ---
             Auto-merge is enabled. Will merge after CI validation passes.
 
-      - name: Comment success on issue
+      - name: Comment success and close issue
         if: steps.result.outputs.success == 'True'
         run: |
           gh issue comment ${{ github.event.issue.number }} \
             --body "✅ Skill 已处理，PR 已创建。CI 校验通过后将自动合并。"
+          gh issue close ${{ github.event.issue.number }} \
+            --reason completed \
+            --comment "Issue 已关闭 — skill 将在 PR 合并后生效。如需重试可重新打开此 Issue。"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -80,7 +83,6 @@ jobs:
       - name: Handle parse error
         if: failure()
         run: |
-          # Read error details
           ERRORS=$(python -c "import json; d=json.load(open('/tmp/add_result.json')); print('\\n'.join(d.get('errors',['Unknown error'])))" 2>/dev/null || echo "Unknown error")
           gh issue comment ${{ github.event.issue.number }} \
             --body "❌ 处理失败：
@@ -92,6 +94,8 @@ jobs:
           常见问题：
           - 仓库地址必须是可访问的 Git 仓库
           - 仓库中必须包含 \`SKILL.md\` 文件
-          - 如指定子目录，确保路径正确"
+          - 如指定子目录，确保路径正确
+
+          💡 修正后重新打开此 Issue 即可重试。"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
