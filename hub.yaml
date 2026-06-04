@@ -153,8 +153,8 @@ skills:
     ref: master
     subpath: skills/productivity/github-trending-briefing/knowgtzh/
   last_synced:
-    commit_sha: 03cdaa448ec2659c587f3f2eca97e64bc0ee634f
-    synced_at: '2026-06-03T08:36:26Z'
+    commit_sha: 3cf0651d020ed20c162cb0db89945320a8b0ac9c
+    synced_at: '2026-06-04T06:48:01Z'
   metadata:
     license: MIT
     author: wahahaazhe
