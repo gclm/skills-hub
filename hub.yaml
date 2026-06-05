@@ -75,8 +75,8 @@ skills:
     ref: main
     subpath: neat-freak/
   last_synced:
-    commit_sha: f78992d0d9ea73f7844e2e27acdd5f5c5e3a13aa
-    synced_at: '2026-06-03T08:14:23Z'
+    commit_sha: 9c315d7a71776dae5139b3f717a53e89b7b835c1
+    synced_at: '2026-06-05T06:36:56Z'
   metadata:
     license: MIT
     author: Khazix
@@ -153,8 +153,8 @@ skills:
     ref: master
     subpath: skills/productivity/github-trending-briefing/knowgtzh/
   last_synced:
-    commit_sha: 3cf0651d020ed20c162cb0db89945320a8b0ac9c
-    synced_at: '2026-06-04T06:48:01Z'
+    commit_sha: 79ba92e090e5351990dbed9c936e2d565877fec6
+    synced_at: '2026-06-05T06:36:58Z'
   metadata:
     license: MIT
     author: wahahaazhe
