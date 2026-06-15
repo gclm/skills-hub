@@ -75,8 +75,8 @@ skills:
     ref: main
     subpath: neat-freak/
   last_synced:
-    commit_sha: 9c315d7a71776dae5139b3f717a53e89b7b835c1
-    synced_at: '2026-06-05T06:36:56Z'
+    commit_sha: ff554365af3a57af5858749a57d7cc3230beec89
+    synced_at: '2026-06-15T07:26:50Z'
   metadata:
     license: MIT
     author: Khazix
@@ -93,8 +93,8 @@ skills:
     ref: main
     subpath: bggg-skill-taotie/
   last_synced:
-    commit_sha: ec844819e0a434150118b3dcd8baa293a579c147
-    synced_at: '2026-06-03T08:16:50Z'
+    commit_sha: afafb15016d128e9909b926cda41528f3a564e64
+    synced_at: '2026-06-15T07:26:50Z'
   metadata:
     license: MIT
     author: binggandata
