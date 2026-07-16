@@ -75,8 +75,8 @@ skills:
     ref: main
     subpath: neat-freak/
   last_synced:
-    commit_sha: d4e43c91f16dcd859748c1d71ec7d8aa1ebb4694
-    synced_at: '2026-07-03T05:58:16Z'
+    commit_sha: 5a963d91f772e0d4f6659c43a36876a74c468143
+    synced_at: '2026-07-16T05:15:03Z'
   metadata:
     license: MIT
     author: Khazix
@@ -121,8 +121,8 @@ skills:
     repo: https://github.com/jiji262/claude-design-skill.git
     ref: main
   last_synced:
-    commit_sha: f1ac87c3decb175d99a269f23ca84860786a598b
-    synced_at: '2026-06-03T08:20:45Z'
+    commit_sha: 35a20e5ada2c9e768d1bc094ce1ef3218f48684b
+    synced_at: '2026-07-16T05:15:04Z'
   metadata:
     license: MIT
     author: dennistodo
