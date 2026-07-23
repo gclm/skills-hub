@@ -137,8 +137,8 @@ skills:
     repo: https://github.com/op7418/guizang-ppt-skill.git
     ref: main
   last_synced:
-    commit_sha: 82fe5ae129e8c2a12e1155fcabed6703342749d6
-    synced_at: '2026-06-03T08:27:24Z'
+    commit_sha: 929c2ecb63a22b54d400c4911ed70bf96c2b355d
+    synced_at: '2026-07-23T05:29:51Z'
   metadata:
     license: MIT
     author: 郭浩
